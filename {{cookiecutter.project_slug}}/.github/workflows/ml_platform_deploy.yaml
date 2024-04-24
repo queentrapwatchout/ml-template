@@ -1,0 +1,34 @@
+name: Model deploy when pushed to main
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  run:
+    runs-on: [ubuntu-latest]
+    container: docker://dvcorg/cml-py3:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 'Deploy/Update on push to main'
+        shell: bash
+
+        env:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
+          SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
+          CRED_SECRET: ${{ secrets.CREDENTIALS_PASS }}
+        
+        run: |
+          # Install requirements
+          pip install -r requirements.txt
+
+          # Pull data & run-cache from S3 and reproduce pipeline
+          dvc pull --run-cache
+          dvc repro
+
+          # Decrypt credentials file
+          gpg --quiet --batch --yes --decrypt --passphrase="$CRED_SECRET" --output credentials.yaml credentials.yaml.gpg
+
+          # Check if there is a deployment already, if positive update it, otherwise deploys it for the first time
+          ./src/scripts/release_pipeline.sh 
