@@ -20,8 +20,6 @@ hooks:
 args: [--ignore-missing-imports]
 
 
-{%- endif %}
-
 {% if cookiecutter.use_pytest == 'y' -%}
 -   repo: local
     hooks:
